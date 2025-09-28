@@ -1,8 +1,6 @@
 package com.example.calculator.controller;
 
-import com.example.calculator.dto.CalculationRequest;
-import com.example.calculator.dto.CalculationResponse;
-import com.example.calculator.dto.ClearResponse;
+import com.example.calculator.dto.*;
 import com.example.calculator.exception.DivisionByZeroException;
 import com.example.calculator.exception.InvalidInputException;
 import com.example.calculator.exception.InvalidDecimalInputException;
@@ -10,6 +8,7 @@ import com.example.calculator.service.ArithmeticService;
 import com.example.calculator.util.InputSanitizerService;
 import com.example.calculator.util.DecimalInputValidatorService;
 import com.example.calculator.service.CalculatorStateService;
+import com.example.calculator.service.CalculationHistoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 /**
  * Controller to handle calculator operations as REST APIs.
@@ -39,6 +39,9 @@ public class CalculatorController {
 
     @Autowired
     private CalculatorStateService calculatorStateService;
+
+    @Autowired
+    private CalculationHistoryService calculationHistoryService;
 
     /**
      * Exposes the /calculate API for performing arithmetic operations.
@@ -107,5 +110,34 @@ public class CalculatorController {
         response.setInput2("");
         response.setResult("");
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Returns the calculation history (up to 10 most recent calculations).
+     */
+    @GetMapping("/history")
+    public ResponseEntity<HistoryResponse> getHistory() {
+        List<CalculationHistoryItem> history = calculationHistoryService.getAll();
+        HistoryResponse response = new HistoryResponse();
+        response.setHistory(history);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Adds a calculation to the history.
+     */
+    @PostMapping("/history")
+    public ResponseEntity<StatusResponse> addCalculationToHistory(@RequestBody CalculationHistoryItem item) {
+        calculationHistoryService.add(item);
+        return ResponseEntity.ok(new StatusResponse("added"));
+    }
+
+    /**
+     * Clears the calculation history.
+     */
+    @DeleteMapping("/history")
+    public ResponseEntity<StatusResponse> clearHistory() {
+        calculationHistoryService.clear();
+        return ResponseEntity.ok(new StatusResponse("cleared"));
     }
 }
