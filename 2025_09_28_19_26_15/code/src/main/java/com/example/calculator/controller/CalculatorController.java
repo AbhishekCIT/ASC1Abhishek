@@ -2,10 +2,12 @@ package com.example.calculator.controller;
 
 import com.example.calculator.dto.CalculationRequest;
 import com.example.calculator.dto.CalculationResponse;
+import com.example.calculator.dto.ClearResponse;
 import com.example.calculator.exception.DivisionByZeroException;
 import com.example.calculator.exception.InvalidInputException;
 import com.example.calculator.service.ArithmeticService;
 import com.example.calculator.util.InputSanitizerService;
+import com.example.calculator.service.CalculatorStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,9 @@ public class CalculatorController {
 
     @Autowired
     private InputSanitizerService inputSanitizerService;
+
+    @Autowired
+    private CalculatorStateService calculatorStateService;
 
     /**
      * Exposes the /calculate API for performing arithmetic operations.
@@ -70,5 +75,20 @@ public class CalculatorController {
             response.setError("Internal server error.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
+
+    /**
+     * Exposes the /clear API for clearing calculator state.
+     * @return ClearResponse with empty input and result fields
+     */
+    @PostMapping("/clear")
+    public ResponseEntity<ClearResponse> clear() {
+        logger.info("Received clear request.");
+        calculatorStateService.clearState();
+        ClearResponse response = new ClearResponse();
+        response.setInput1("");
+        response.setInput2("");
+        response.setResult("");
+        return ResponseEntity.ok(response);
     }
 }
