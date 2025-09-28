@@ -5,8 +5,10 @@ import com.example.calculator.dto.CalculationResponse;
 import com.example.calculator.dto.ClearResponse;
 import com.example.calculator.exception.DivisionByZeroException;
 import com.example.calculator.exception.InvalidInputException;
+import com.example.calculator.exception.InvalidDecimalInputException;
 import com.example.calculator.service.ArithmeticService;
 import com.example.calculator.util.InputSanitizerService;
+import com.example.calculator.util.DecimalInputValidatorService;
 import com.example.calculator.service.CalculatorStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Controller to handle calculator operations as REST APIs.
@@ -30,6 +35,9 @@ public class CalculatorController {
     private InputSanitizerService inputSanitizerService;
 
     @Autowired
+    private DecimalInputValidatorService decimalInputValidatorService;
+
+    @Autowired
     private CalculatorStateService calculatorStateService;
 
     /**
@@ -42,6 +50,9 @@ public class CalculatorController {
         logger.info("Received calculation request: {}", request);
         CalculationResponse response = new CalculationResponse();
         try {
+            // Validate decimal input
+            decimalInputValidatorService.validateDecimal(request.getNum1());
+            decimalInputValidatorService.validateDecimal(request.getNum2());
             // Validate and sanitize inputs
             double num1 = inputSanitizerService.sanitizeAndValidate(request.getNum1(), "num1");
             double num2 = inputSanitizerService.sanitizeAndValidate(request.getNum2(), "num2");
@@ -64,8 +75,14 @@ public class CalculatorController {
                     logger.error("Invalid operation selected: {}", operation);
                     throw new InvalidInputException("Invalid operation selected.");
             }
-            response.setResult(result);
+            // Round result to 4 decimal places
+            double roundedResult = new BigDecimal(result).setScale(4, RoundingMode.HALF_UP).doubleValue();
+            response.setResult(roundedResult);
             return ResponseEntity.ok(response);
+        } catch (InvalidDecimalInputException ex) {
+            logger.error("Invalid decimal input: {}", ex.getMessage());
+            response.setError(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (InvalidInputException | DivisionByZeroException ex) {
             logger.error("Calculation error: {}", ex.getMessage());
             response.setError(ex.getMessage());
