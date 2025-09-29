@@ -4,18 +4,21 @@ import com.airbook.model.Booking;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for sending e-ticket notifications
+ * Service for sending notifications for booking modifications/cancellations
  */
 @Service
 public class NotificationService {
+    /**
+     * Send modification notification (mock)
+     */
+    public void sendModificationNotification(Booking booking) {
+        System.out.println("Modification notification sent for booking: " + booking.getBookingId());
+    }
 
     /**
-     * Send e-ticket notification via email
-     * @param booking Booking details
+     * Send cancellation notification (mock)
      */
-    public void sendETicket(Booking booking) {
-        // Integrate with email service provider (e.g., SendGrid)
-        // For demonstration, just print to console
-        System.out.println("E-ticket sent to " + booking.getPassengerEmail() + ": " + booking.getETicket());
+    public void sendCancellationNotification(Booking booking) {
+        System.out.println("Cancellation notification sent for booking: " + booking.getBookingId());
     }
 }
