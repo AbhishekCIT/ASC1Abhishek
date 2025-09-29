@@ -1,24 +1,48 @@
 package com.airbook.service;
 
-import com.airbook.model.Booking;
+import com.airbook.model.NotificationLog;
+import com.airbook.model.NotificationPreference;
+import com.airbook.repository.NotificationLogRepository;
+import com.airbook.service.PreferenceService;
+import com.airbook.util.NotificationChannelClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 /**
- * Service for sending notifications for booking modifications/cancellations
+ * Service for notification logic, delivery, and logging
  */
 @Service
 public class NotificationService {
+    @Autowired
+    private PreferenceService preferenceService;
+    @Autowired
+    private NotificationChannelClient notificationChannelClient;
+    @Autowired
+    private NotificationLogRepository notificationLogRepository;
+
     /**
-     * Send modification notification (mock)
+     * Send flight status notification to user based on preferences
      */
-    public void sendModificationNotification(Booking booking) {
-        System.out.println("Modification notification sent for booking: " + booking.getBookingId());
+    public void sendFlightStatusNotification(AirlineStatusService.FlightStatusUpdate update) {
+        List<String> channels = preferenceService.getPreferences(update.getUserId());
+        for (String channel : channels) {
+            boolean delivered = notificationChannelClient.sendNotification(channel, update.getUserId(), update.getStatus(), update.getDetails());
+            NotificationLog log = new NotificationLog();
+            log.setLogId(java.util.UUID.randomUUID().toString());
+            log.setUserId(update.getUserId());
+            log.setType(channel);
+            log.setStatus(delivered ? "DELIVERED" : "FAILED");
+            log.setMessage(update.getStatus() + ": " + update.getDetails());
+            log.setSentAt(java.time.LocalDateTime.now());
+            notificationLogRepository.save(log);
+        }
     }
 
     /**
-     * Send cancellation notification (mock)
+     * Get notification delivery logs for a user
      */
-    public void sendCancellationNotification(Booking booking) {
-        System.out.println("Cancellation notification sent for booking: " + booking.getBookingId());
+    public List<NotificationLog> getNotificationLogs(String userId) {
+        return notificationLogRepository.findLogsByUser(userId);
     }
 }
