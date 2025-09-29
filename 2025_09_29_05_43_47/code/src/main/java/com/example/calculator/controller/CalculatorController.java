@@ -4,6 +4,7 @@ import com.example.calculator.model.CalculationRequest;
 import com.example.calculator.model.CalculationResponse;
 import com.example.calculator.service.CalculatorService;
 import com.example.calculator.service.CalculatorStateService;
+import com.example.calculator.service.KeyboardListener;
 import com.example.calculator.exception.ErrorHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,9 @@ public class CalculatorController {
 
     @Autowired
     private CalculatorStateService calculatorStateService;
+
+    @Autowired
+    private KeyboardListener keyboardListener;
 
     @Autowired
     private ErrorHandler errorHandler;
@@ -62,6 +66,28 @@ public class CalculatorController {
         } catch (Exception e) {
             logger.error("Reset error: {}", e.getMessage());
             response.put("status", "failure");
+            response.put("error", e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * Exposes POST /api/keyboard for keyboard input events
+     * @param payload Map with "key" field
+     * @return Map with status and error message (if any)
+     */
+    @PostMapping("/keyboard")
+    public ResponseEntity<Map<String, Object>> processKeyboardInput(@RequestBody Map<String, String> payload) {
+        logger.debug("Received keyboard input: {}", payload);
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String key = payload.get("key");
+            String status = keyboardListener.onKeyPress(key);
+            response.put("status", status);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Keyboard input error: {}", e.getMessage());
+            response.put("status", "ignored");
             response.put("error", e.getMessage());
             return ResponseEntity.ok(response);
         }
