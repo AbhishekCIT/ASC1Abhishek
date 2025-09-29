@@ -5,6 +5,9 @@ import com.example.calculator.model.CalculationResponse;
 import com.example.calculator.service.CalculatorService;
 import com.example.calculator.service.CalculatorStateService;
 import com.example.calculator.service.KeyboardListener;
+import com.example.calculator.service.AccessibilityService;
+import com.example.calculator.service.LayoutService;
+import com.example.calculator.service.KeyboardNavigationService;
 import com.example.calculator.exception.ErrorHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +35,17 @@ public class CalculatorController {
     private KeyboardListener keyboardListener;
 
     @Autowired
+    private AccessibilityService accessibilityService;
+
+    @Autowired
+    private LayoutService layoutService;
+
+    @Autowired
+    private KeyboardNavigationService keyboardNavigationService;
+
+    @Autowired
     private ErrorHandler errorHandler;
 
-    /**
-     * Exposes POST /api/calculate for basic arithmetic operations
-     * @param request CalculationRequest containing num1, num2, and operation
-     * @return CalculationResponse with result or error
-     */
     @PostMapping("/calculate")
     public ResponseEntity<CalculationResponse> calculate(@RequestBody CalculationRequest request) {
         logger.info("Received calculation request: {}", request);
@@ -51,10 +58,6 @@ public class CalculatorController {
         }
     }
 
-    /**
-     * Exposes POST /api/reset to clear calculator state
-     * @return Map with status and error message (if any)
-     */
     @PostMapping("/reset")
     public ResponseEntity<Map<String, Object>> reset() {
         logger.info("Received reset request");
@@ -71,11 +74,6 @@ public class CalculatorController {
         }
     }
 
-    /**
-     * Exposes POST /api/keyboard for keyboard input events
-     * @param payload Map with "key" field
-     * @return Map with status and error message (if any)
-     */
     @PostMapping("/keyboard")
     public ResponseEntity<Map<String, Object>> processKeyboardInput(@RequestBody Map<String, String> payload) {
         logger.debug("Received keyboard input: {}", payload);
@@ -88,6 +86,49 @@ public class CalculatorController {
         } catch (Exception e) {
             logger.error("Keyboard input error: {}", e.getMessage());
             response.put("status", "ignored");
+            response.put("error", e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * Exposes GET /api/ui to simulate UI render event
+     */
+    @GetMapping("/ui")
+    public ResponseEntity<Map<String, Object>> renderUI() {
+        logger.info("UI render requested");
+        Map<String, Object> response = new HashMap<>();
+        try {
+            layoutService.applyResponsiveLayout();
+            accessibilityService.applyAccessibility();
+            keyboardNavigationService.enableNavigation();
+            response.put("status", "rendered");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("UI render error: {}", e.getMessage());
+            response.put("status", "failed");
+            response.put("error", e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * Exposes GET /api/accessibility to check accessibility compliance
+     */
+    @GetMapping("/accessibility")
+    public ResponseEntity<Map<String, Object>> accessibilityCheck() {
+        logger.info("Accessibility check requested");
+        Map<String, Object> response = new HashMap<>();
+        try {
+            boolean passed = accessibilityService.checkCompliance();
+            response.put("status", passed ? "passed" : "failed");
+            if (!passed) {
+                response.put("errors", accessibilityService.getAccessibilityErrors());
+            }
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Accessibility check error: {}", e.getMessage());
+            response.put("status", "failed");
             response.put("error", e.getMessage());
             return ResponseEntity.ok(response);
         }
