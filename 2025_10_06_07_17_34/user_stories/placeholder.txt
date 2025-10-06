@@ -1,0 +1,1 @@
+This is a placeholder to ensure the user_stories subfolder exists for storing user stories related to the Air Transport EPIC.
